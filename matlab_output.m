@@ -13,7 +13,6 @@ outDir = 'C:\Users\Anindita\Downloads\ztm_project\ztm_project\outputs';
 figDir = fullfile(outDir, 'figures');
 if ~exist(figDir, 'dir'), mkdir(figDir); end
 
-
 %% ---------- 1. FORECASTING: RMSE with error bars ----------
 F = readtable(fullfile(outDir, 'bench_forecast.csv'));
 F = sortrows(F, 'rmse_mean');
@@ -48,17 +47,20 @@ for k = 1:numel(models)
 end
 xlabel('Cross-validation fold'); ylabel('RMSE (kbps)');
 title('Per-fold RMSE: models rise and fall together (fold difficulty dominates)');
-legend('Location', 'best'); grid on; box on;
+legend('Location', 'southoutside', 'Orientation', 'horizontal'); colorbar('off');
+grid on; box on;
 xticks(unique(U.fold + 1));
 saveas(gcf, fullfile(figDir, 'forecast_per_fold.png'));
 
 %% ---------- 4. TRAINING TIME (median, robust to one slow fold) ----------
 G = groupsummary(T, 'model', 'median', 'train_s');
+G = G(G.median_train_s > 0, :);   % persistence needs no training (0 s cannot be drawn on a log axis)
 G = sortrows(G, 'median_train_s');
 figure('Name', 'Training time', 'Color', 'w');
 barh(G.median_train_s); set(gca, 'YTick', 1:height(G), 'YTickLabel', G.model, 'XScale', 'log');
+xlim([0.01 100]);
 xlabel('Median training time per fold (seconds, log scale)');
-title('Cost of each forecasting model');
+title('Cost of each forecasting model (persistence needs no training)');
 grid on; box on;
 saveas(gcf, fullfile(figDir, 'forecast_train_time.png'));
 
@@ -99,7 +101,8 @@ end
 figure('Name', 'RL policies', 'Color', 'w');
 bar(1:numel(pol), meanR, 0.6); hold on;
 errorbar(1:numel(pol), meanR, stdR, 'k.', 'LineWidth', 1.3);
-set(gca, 'XTick', 1:numel(pol), 'XTickLabel', strrep(pol, '_', ' ')); xtickangle(30);
+lbl = strrep(pol, '_', ' '); lbl = strrep(lbl, 'proportional fair', 'prop. fair');
+set(gca, 'XTick', 1:numel(pol), 'XTickLabel', lbl); xtickangle(30);
 ylabel('Mean reward (closer to 0 is better)');
 title('Task 3: allocation policies on held-out episodes');
 grid on; box on;
